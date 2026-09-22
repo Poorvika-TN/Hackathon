@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+        Secure Login - Carbon-Aware AI Scheduler
+    </title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-family: Arial, sans-serif;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #eff6ff,
+                    #f0fdf4
+                );
+        }
+
+        .login-card {
+
+            width: 430px;
+
+            max-width: 92%;
+
+            background: white;
+
+            padding: 35px;
+
+            border-radius: 16px;
+
+            box-shadow:
+                0 10px 35px
+                rgba(0,0,0,0.12);
+        }
+
+        .logo {
+
+            text-align: center;
+
+            font-size: 45px;
+
+            margin-bottom: 8px;
+        }
+
+        h1 {
+
+            text-align: center;
+
+            margin: 0;
+
+            font-size: 24px;
+
+            color: #111827;
+        }
+
+        .subtitle {
+
+            text-align: center;
+
+            color: #6b7280;
+
+            margin: 10px 0 25px;
+
+            line-height: 1.5;
+        }
+
+        #clerk-login {
+
+            width: 100%;
+        }
+
+        .security {
+
+            margin-top: 20px;
+
+            padding: 13px;
+
+            background: #eff6ff;
+
+            border-left:
+                4px solid #2563eb;
+
+            border-radius: 6px;
+
+            font-size: 13px;
+
+            color: #1e3a8a;
+
+            line-height: 1.5;
+        }
+
+        .error-box {
+
+            padding: 18px;
+
+            background: #fee2e2;
+
+            color: #991b1b;
+
+            border-radius: 8px;
+
+            text-align: center;
+
+            line-height: 1.6;
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="login-card">
+
+    <div class="logo">
+        🌱
+    </div>
+
+    <h1>
+        Carbon-Aware AI Scheduler
+    </h1>
+
+    <div class="subtitle">
+
+        Secure authentication using
+        email OTP verification
+
+    </div>
+
+
+    <div id="clerk-login">
+
+        <div style="
+            text-align:center;
+            color:#6b7280;
+            padding:20px;
+        ">
+
+            Loading secure login...
+
+        </div>
+
+    </div>
+
+
+    <div class="security">
+
+        <b>🔐 Secure Login</b>
+
+        <br><br>
+
+        Clerk handles authentication and
+        email OTP verification.
+
+        <br><br>
+
+        Access to the scheduler is provided
+        after successful verification.
+
+    </div>
+
+</div>
+
+
+<script>
+
+const CLERK_PUBLISHABLE_KEY =
+    "pk_test_bWFqb3ItcGFuZGEtNzc5NC5jbGVyay5hY2NvdW50cy5kZXYk";
+
+
+/*
+=========================================================
+GET CLERK DOMAIN FROM PUBLISHABLE KEY
+=========================================================
+*/
+
+function getClerkDomain(key) {
+
+    try {
+
+        const encoded =
+            key.split("_")[2];
+
+        return atob(encoded).slice(0, -1);
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Could not decode Clerk key:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/*
+=========================================================
+LOAD SCRIPT
+=========================================================
+*/
+
+function loadScript(src, attributes = {}) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const script =
+                document.createElement("script");
+
+            script.src = src;
+
+            script.async = true;
+
+            script.crossOrigin =
+                "anonymous";
+
+            for (
+                const key in attributes
+            ) {
+
+                script.setAttribute(
+                    key,
+                    attributes[key]
+                );
+
+            }
+
+            script.onload =
+                resolve;
+
+            script.onerror =
+                () => reject(
+                    new Error(
+                        "Failed to load: " + src
+                    )
+                );
+
+            document.head.appendChild(
+                script
+            );
+
+        }
+    );
+
+}
+
+
+/*
+=========================================================
+START CLERK
+=========================================================
+*/
+
+async function startClerk() {
+
+    const loginContainer =
+        document.getElementById(
+            "clerk-login"
+        );
+
+
+    try {
+
+        /*
+        Get:
+
+        major-panda-7794.clerk.accounts.dev
+
+        from the publishable key.
+        */
+
+        const clerkDomain =
+            getClerkDomain(
+                CLERK_PUBLISHABLE_KEY
+            );
+
+
+        if (!clerkDomain) {
+
+            throw new Error(
+                "Invalid Clerk Publishable Key."
+            );
+
+        }
+
+
+        console.log(
+            "Clerk domain:",
+            clerkDomain
+        );
+
+
+        /*
+        =================================================
+        LOAD CLERK UI BUNDLE
+        =================================================
+        */
+
+        await loadScript(
+
+            `https://${clerkDomain}/npm/@clerk/ui@1/dist/ui.browser.js`
+
+        );
+
+
+        /*
+        =================================================
+        LOAD CLERK JS
+        =================================================
+        */
+
+        await loadScript(
+
+            `https://${clerkDomain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`,
+
+            {
+                "data-clerk-publishable-key":
+                    CLERK_PUBLISHABLE_KEY
+            }
+
+        );
+
+
+        /*
+        =================================================
+        INITIALIZE CLERK
+        =================================================
+        */
+
+        await Clerk.load({
+
+            ui: {
+
+                ClerkUI:
+                    window.__internal_ClerkUICtor
+
+            }
+
+        });
+
+
+        console.log(
+            "Clerk loaded successfully."
+        );
+
+
+        /*
+        =================================================
+        CHECK LOGIN
+        =================================================
+        */
+
+        if (Clerk.isSignedIn) {
+
+            console.log(
+                "User already signed in."
+            );
+
+            window.location.href =
+                "/scheduler";
+
+            return;
+
+        }
+
+
+        /*
+        =================================================
+        DISPLAY LOGIN FORM
+        =================================================
+        */
+
+        loginContainer.innerHTML = "";
+
+
+        Clerk.mountSignIn(
+
+            loginContainer,
+
+            {
+
+                routing:
+                    "hash",
+
+                fallbackRedirectUrl:
+                    "/scheduler",
+
+                forceRedirectUrl:
+                    "/scheduler"
+
+            }
+
+        );
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "CLERK ERROR:",
+            error
+        );
+
+
+        loginContainer.innerHTML = `
+
+            <div class="error-box">
+
+                <b>⚠️ Clerk could not be loaded.</b>
+
+                <br><br>
+
+                Please check your internet connection
+                and Clerk configuration.
+
+                <br><br>
+
+                <small>
+                    Open browser console
+                    (F12 → Console)
+                    for technical details.
+                </small>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/*
+=========================================================
+RUN
+=========================================================
+*/
+
+startClerk();
+
+</script>
+
+</body>
+
+</html>

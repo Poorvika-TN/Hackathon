@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Carbon-Aware AI Scheduler</title>
+
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6fa;
+            color: #1f2937;
+        }
+
+        /* ================= HEADER ================= */
+
+        header {
+            background: linear-gradient(
+                135deg,
+                #0f172a,
+                #1e3a8a
+            );
+
+            color: white;
+
+            padding: 20px 35px;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            box-shadow:
+                0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .header-left h1 {
+            margin: 0;
+            font-size: 25px;
+        }
+
+        .header-left p {
+            margin: 6px 0 0;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .logout-btn:hover {
+            background: #b91c1c;
+        }
+
+        .logout-btn:disabled {
+            opacity: 0.7;
+            cursor: wait;
+        }
+
+        /* ================= CONTAINER ================= */
+
+        .container {
+            width: 94%;
+            max-width: 1400px;
+            margin: 25px auto;
+        }
+
+        /* ================= CARDS ================= */
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 22px;
+
+            box-shadow:
+                0 4px 18px rgba(0,0,0,0.07);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: #111827;
+        }
+
+        /* ================= WORKFLOW ================= */
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+
+            padding: 14px;
+
+            border: 1px solid #cbd5e1;
+
+            border-radius: 9px;
+
+            font-size: 15px;
+
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .generate-btn {
+            margin-top: 12px;
+
+            background: #2563eb;
+
+            color: white;
+
+            border: none;
+
+            padding: 12px 25px;
+
+            border-radius: 8px;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .generate-btn:hover {
+            background: #1d4ed8;
+        }
+
+        /* ================= METRICS ================= */
+
+        .metrics {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 18px;
+        }
+
+        .metric {
+            padding: 20px;
+
+            border-radius: 12px;
+
+            background: #f8fafc;
+
+            border-left: 5px solid #2563eb;
+        }
+
+        .metric-title {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .metric-value {
+            margin-top: 8px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        /* ================= DAG ================= */
+
+        .dag-container {
+            overflow-x: auto;
+            padding: 15px 5px;
+        }
+
+        .dag-levels {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .dag-level {
+            min-width: 180px;
+        }
+
+        .level-title {
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .dag-node {
+            background: #eff6ff;
+
+            border: 2px solid #3b82f6;
+
+            border-radius: 10px;
+
+            padding: 12px;
+
+            margin-bottom: 12px;
+
+            text-align: center;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            color: #1e3a8a;
+        }
+
+        /* ================= TABLE ================= */
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 850px;
+        }
+
+        th {
+            background: #1e3a8a;
+            color: white;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        td {
+            padding: 11px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .small-model {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .medium-model {
+            color: #ca8a04;
+            font-weight: bold;
+        }
+
+        .large-model {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        /* ================= PARETO ================= */
+
+        #paretoChart {
+            width: 100%;
+            height: 600px;
+        }
+
+        /* ================= CONNECTIVITY ================= */
+
+        .connectivity-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 18px;
+        }
+
+        .status-box {
+            padding: 18px;
+
+            border-radius: 10px;
+
+            background: #f8fafc;
+
+            border: 1px solid #e2e8f0;
+        }
+
+        .status-value {
+            font-size: 25px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .online {
+            color: #16a34a;
+        }
+
+        .offline {
+            color: #dc2626;
+        }
+
+        .connectivity-buttons {
+            margin-top: 18px;
+
+            display: flex;
+
+            gap: 10px;
+
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            border: none;
+
+            padding: 10px 17px;
+
+            border-radius: 7px;
+
+            cursor: pointer;
+
+            font-weight: bold;
+        }
+
+        .offline-btn {
+            background: #f97316;
+            color: white;
+        }
+
+        .pending-btn {
+            background: #475569;
+            color: white;
+        }
+
+        .sync-btn {
+            background: #16a34a;
+            color: white;
+        }
+
+        /* ================= EVENTS ================= */
+
+        #eventsList {
+            margin-top: 15px;
+        }
+
+        .event-item {
+            background: #f8fafc;
+
+            border-left: 4px solid #f97316;
+
+            padding: 10px;
+
+            margin-bottom: 8px;
+
+            border-radius: 5px;
+
+            font-size: 13px;
+        }
+
+        /* ================= RESPONSIVE ================= */
+
+        @media (max-width: 800px) {
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .metrics,
+            .connectivity-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header>
+
+    <div class="header-left">
+
+        <h1>
+            🌱 Carbon-Aware AI Scheduler
+        </h1>
+
+        <p>
+            Multi-objective scheduling with
+            intermittent connectivity resilience
+        </p>
+
+    </div>
+
+
+    <button
+        id="logoutBtn"
+        class="logout-btn">
+
+        🔓 Logout
+
+    </button>
+
+</header>
+
+
+
+<div class="container">
+
+
+<!-- =====================================================
+     WORKFLOW INPUT
+===================================================== -->
+
+<div class="card">
+
+    <h2>
+        ⚙️ AI Workflow
+    </h2>
+
+    <p>
+        Enter tasks separated by
+        <b>→</b>.
+    </p>
+
+    <textarea
+        id="workflowInput"
+        placeholder="Research → Data Collection → Image Preprocessing → Disease Detection → Soil Data Collection → Crop Health Analysis → Yield Prediction → Report Generation"></textarea>
+
+
+    <button
+        class="generate-btn"
+        onclick="generateWorkflow()">
+
+        🚀 Generate Carbon-Aware Schedule
+
+    </button>
+
+</div>
+
+
+
+<!-- =====================================================
+     METRICS
+===================================================== -->
+
+<div class="card">
+
+    <h2>
+        📊 Optimization Metrics
+    </h2>
+
+    <div class="metrics">
+
+        <div class="metric">
+
+            <div class="metric-title">
+                Total Carbon
+            </div>
+
+            <div
+                class="metric-value"
+                id="carbonMetric">
+
+                0 gCO₂
+
+            </div>
+
+        </div>
+
+
+        <div class="metric">
+
+            <div class="metric-title">
+                Total Cost
+            </div>
+
+            <div
+                class="metric-value"
+                id="costMetric">
+
+                $0.00
+
+            </div>
+
+        </div>
+
+
+        <div class="metric">
+
+            <div class="metric-title">
+                Total Latency
+            </div>
+
+            <div
+                class="metric-value"
+                id="latencyMetric">
+
+                0 min
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     DEPENDENCY DAG
+===================================================== -->
+
+<div class="card">
+
+    <h2>
+        🔗 Dependency-Based DAG
+    </h2>
+
+    <p>
+        Tasks are organized according to
+        their dependencies.
+    </p>
+
+    <div
+        id="dagContainer"
+        class="dag-container">
+
+        <p>
+            Generate a workflow to display
+            the dependency graph.
+        </p>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     TASK CHARACTERIZATION
+===================================================== -->
+
+<div class="card">
+
+    <h2>
+        🧠 Task Characterization
+    </h2>
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Task</th>
+                    <th>Complexity</th>
+                    <th>Model</th>
+                    <th>Slack</th>
+                    <th>Deadline</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="taskTableBody">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     SCHEDULE
+===================================================== -->
+
+<div class="card">
+
+    <h2>
+        🌍 Carbon-Aware Schedule
+    </h2>
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Task</th>
+                    <th>Model</th>
+                    <th>Region</th>
+                    <th>Time</th>
+                    <th>Carbon</th>
+                    <th>Cost</th>
+                    <th>Latency</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="scheduleTableBody">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     3D PARETO
+===================================================== -->
+
+<div class="card">
+
+    <h2>
+        📈 3D Multi-Objective Pareto Analysis
+    </h2>
+
+    <p>
+        Candidate schedules are compared using
+        cost, latency and carbon emissions.
+    </p>
+
+    <div id="paretoChart"></div>
+
+</div>
+
+
+
+<!-- =====================================================
+     INTERMITTENT CONNECTIVITY
+===================================================== -->
+
+<div class="card">
+
+    <h2>
+        📡 Intermittent Connectivity Resilience
+    </h2>
+
+    <p>
+        Tasks completed while offline are stored
+        locally and synchronized when connectivity
+        is restored.
+    </p>
+
+
+    <div class="connectivity-grid">
+
+
+        <div class="status-box">
+
+            <div>
+                Connectivity Mode
+            </div>
+
+            <div
+                class="status-value"
+                id="connectionMode">
+
+                Online
+
+            </div>
+
+        </div>
+
+
+        <div class="status-box">
+
+            <div>
+                Pending Events
+            </div>
+
+            <div
+                class="status-value"
+                id="pendingCount">
+
+                0
+
+            </div>
+
+        </div>
+
+
+        <div class="status-box">
+
+            <div>
+                Sync Status
+            </div>
+
+            <div
+                class="status-value"
+                id="syncStatus">
+
+                Ready
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="connectivity-buttons">
+
+        <button
+            class="action-btn offline-btn"
+            onclick="simulateOfflineTask()">
+
+            📴 Complete Task Offline
+
+        </button>
+
+
+        <button
+            class="action-btn pending-btn"
+            onclick="loadPendingEvents()">
+
+            📋 View Pending Events
+
+        </button>
+
+
+        <button
+            class="action-btn sync-btn"
+            onclick="syncEvents()">
+
+            🔄 Synchronize
+
+        </button>
+
+    </div>
+
+
+    <div id="eventsList"></div>
+
+</div>
+
+
+</div>
+
+
+
+<script>
+
+/* =====================================================
+   CLERK CONFIGURATION
+===================================================== */
+
+const CLERK_PUBLISHABLE_KEY =
+    "pk_test_bWFqb3ItcGFuZGEtNzc5NC5jbGVyay5hY2NvdW50cy5kZXYk";
+
+
+/* =====================================================
+   GET CLERK DOMAIN
+===================================================== */
+
+function getClerkDomain(key) {
+
+    try {
+
+        const encoded =
+            key.split("_")[2];
+
+        return atob(encoded).slice(0, -1);
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Could not decode Clerk key:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* =====================================================
+   LOAD CLERK
+===================================================== */
+
+function loadClerkScript(
+    src,
+    attributes = {}
+) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const script =
+                document.createElement("script");
+
+            script.src = src;
+
+            script.async = true;
+
+            script.crossOrigin =
+                "anonymous";
+
+
+            for (
+                const key in attributes
+            ) {
+
+                script.setAttribute(
+                    key,
+                    attributes[key]
+                );
+
+            }
+
+
+            script.onload =
+                resolve;
+
+            script.onerror =
+                () => reject(
+                    new Error(
+                        "Failed to load Clerk"
+                    )
+                );
+
+
+            document.head.appendChild(
+                script
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   CLERK LOGOUT
+===================================================== */
+
+async function setupLogout() {
+
+    try {
+
+        const clerkDomain =
+            getClerkDomain(
+                CLERK_PUBLISHABLE_KEY
+            );
+
+
+        if (!clerkDomain) {
+
+            throw new Error(
+                "Invalid Clerk key"
+            );
+
+        }
+
+
+        /*
+        Load Clerk UI
+        */
+
+        await loadClerkScript(
+
+            `https://${clerkDomain}/npm/@clerk/ui@1/dist/ui.browser.js`
+
+        );
+
+
+        /*
+        Load Clerk JS
+        */
+
+        await loadClerkScript(
+
+            `https://${clerkDomain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`,
+
+            {
+
+                "data-clerk-publishable-key":
+                    CLERK_PUBLISHABLE_KEY
+
+            }
+
+        );
+
+
+        /*
+        Initialize Clerk
+        */
+
+        await Clerk.load({
+
+            ui: {
+
+                ClerkUI:
+                    window.__internal_ClerkUICtor
+
+            }
+
+        });
+
+
+        console.log(
+            "Clerk loaded on dashboard."
+        );
+
+
+        const logoutBtn =
+            document.getElementById(
+                "logoutBtn"
+            );
+
+
+        if (logoutBtn) {
+
+            logoutBtn.addEventListener(
+                "click",
+                async function () {
+
+                    try {
+
+                        logoutBtn.disabled =
+                            true;
+
+                        logoutBtn.innerText =
+                            "Logging out...";
+
+
+                        await Clerk.signOut({
+
+                            redirectUrl:
+                                "/login"
+
+                        });
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "Logout error:",
+                            error
+                        );
+
+
+                        logoutBtn.disabled =
+                            false;
+
+                        logoutBtn.innerText =
+                            "🔓 Logout";
+
+                    }
+
+                }
+            );
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Clerk initialization failed:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   GENERATE WORKFLOW
+===================================================== */
+
+async function generateWorkflow() {
+
+    const workflow =
+        document
+            .getElementById(
+                "workflowInput"
+            )
+            .value
+            .trim();
+
+
+    if (!workflow) {
+
+        alert(
+            "Please enter an AI workflow."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/generate",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+                            workflow:
+                                workflow
+                        })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            alert(
+                data.error ||
+                "Unable to generate workflow."
+            );
+
+            return;
+
+        }
+
+
+        displayMetrics(
+            data.metrics
+        );
+
+
+        displayDAG(
+            data.tasks,
+            data.edges
+        );
+
+
+        displayTaskInfo(
+            data.task_info
+        );
+
+
+        displaySchedule(
+            data.schedule
+        );
+
+
+        displayPareto(
+            data.schedule
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Server connection failed."
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   DISPLAY METRICS
+===================================================== */
+
+function displayMetrics(metrics) {
+
+    document.getElementById(
+        "carbonMetric"
+    ).innerText =
+        metrics.carbon +
+        " gCO₂";
+
+
+    document.getElementById(
+        "costMetric"
+    ).innerText =
+        "$" +
+        Number(
+            metrics.cost
+        ).toFixed(2);
+
+
+    document.getElementById(
+        "latencyMetric"
+    ).innerText =
+        metrics.latency +
+        " min";
+
+}
+
+
+/* =====================================================
+   DISPLAY DAG
+===================================================== */
+
+function displayDAG(
+    tasks,
+    edges
+) {
+
+    const container =
+        document.getElementById(
+            "dagContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (!tasks.length) {
+
+        return;
+
+    }
+
+
+    /*
+    Calculate dependency levels.
+    */
+
+    const levelMap = {};
+
+
+    tasks.forEach(
+        task => {
+
+            levelMap[task] = 0;
+
+        }
+    );
+
+
+    let changed = true;
+
+
+    while (changed) {
+
+        changed = false;
+
+
+        edges.forEach(
+            edge => {
+
+                const from =
+                    edge[0];
+
+                const to =
+                    edge[1];
+
+
+                const newLevel =
+                    levelMap[from] + 1;
+
+
+                if (
+                    newLevel >
+                    levelMap[to]
+                ) {
+
+                    levelMap[to] =
+                        newLevel;
+
+                    changed = true;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    const levels = {};
+
+
+    tasks.forEach(
+        task => {
+
+            const level =
+                levelMap[task];
+
+
+            if (!levels[level]) {
+
+                levels[level] = [];
+
+            }
+
+
+            levels[level].push(
+                task
+            );
+
+        }
+    );
+
+
+    const dagLevels =
+        document.createElement(
+            "div"
+        );
+
+
+    dagLevels.className =
+        "dag-levels";
+
+
+    Object.keys(levels)
+        .sort(
+            (a, b) =>
+                Number(a) -
+                Number(b)
+        )
+        .forEach(
+            level => {
+
+                const levelDiv =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                levelDiv.className =
+                    "dag-level";
+
+
+                const title =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                title.className =
+                    "level-title";
+
+
+                title.innerText =
+                    "LEVEL " +
+                    (
+                        Number(level) + 1
+                    );
+
+
+                levelDiv.appendChild(
+                    title
+                );
+
+
+                levels[level].forEach(
+                    task => {
+
+                        const node =
+                            document.createElement(
+                                "div"
+                            );
+
+
+                        node.className =
+                            "dag-node";
+
+
+                        node.innerText =
+                            task;
+
+
+                        levelDiv.appendChild(
+                            node
+                        );
+
+                    }
+                );
+
+
+                dagLevels.appendChild(
+                    levelDiv
+                );
+
+            }
+        );
+
+
+    container.appendChild(
+        dagLevels
+    );
+
+}
+
+
+/* =====================================================
+   DISPLAY TASK INFORMATION
+===================================================== */
+
+function displayTaskInfo(
+    taskInfo
+) {
+
+    const tbody =
+        document.getElementById(
+            "taskTableBody"
+        );
+
+
+    tbody.innerHTML = "";
+
+
+    taskInfo.forEach(
+        task => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+
+            let modelClass =
+                "";
+
+
+            if (
+                task.model ===
+                "Small Model"
+            ) {
+
+                modelClass =
+                    "small-model";
+
+            }
+
+            else if (
+                task.model ===
+                "Medium Model"
+            ) {
+
+                modelClass =
+                    "medium-model";
+
+            }
+
+            else {
+
+                modelClass =
+                    "large-model";
+
+            }
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${task.task}
+                </td>
+
+                <td>
+                    ${task.complexity}
+                </td>
+
+                <td class="${modelClass}">
+                    ${task.model}
+                </td>
+
+                <td>
+                    ${task.slack} min
+                </td>
+
+                <td>
+                    ${task.deadline} min
+                </td>
+
+            `;
+
+
+            tbody.appendChild(
+                row
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   DISPLAY SCHEDULE
+===================================================== */
+
+function displaySchedule(
+    schedule
+) {
+
+    const tbody =
+        document.getElementById(
+            "scheduleTableBody"
+        );
+
+
+    tbody.innerHTML = "";
+
+
+    schedule.forEach(
+        item => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+
+            let modelClass =
+                "";
+
+
+            if (
+                item.model ===
+                "Small Model"
+            ) {
+
+                modelClass =
+                    "small-model";
+
+            }
+
+            else if (
+                item.model ===
+                "Medium Model"
+            ) {
+
+                modelClass =
+                    "medium-model";
+
+            }
+
+            else {
+
+                modelClass =
+                    "large-model";
+
+            }
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${item.task}
+                </td>
+
+                <td class="${modelClass}">
+                    ${item.model}
+                </td>
+
+                <td>
+                    ${item.region}
+                </td>
+
+                <td>
+                    ${item.time}
+                </td>
+
+                <td>
+                    ${item.carbon} gCO₂
+                </td>
+
+                <td>
+                    $${Number(
+                        item.cost
+                    ).toFixed(2)}
+                </td>
+
+                <td>
+                    ${item.latency} min
+                </td>
+
+            `;
+
+
+            tbody.appendChild(
+                row
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   3D PARETO CHART
+===================================================== */
+
+function displayPareto(
+    schedule
+) {
+
+    if (!schedule.length) {
+
+        return;
+
+    }
+
+
+    const carbon =
+        schedule.map(
+            item => item.carbon
+        );
+
+
+    const cost =
+        schedule.map(
+            item => item.cost
+        );
+
+
+    const latency =
+        schedule.map(
+            item => item.latency
+        );
+
+
+    const names =
+        schedule.map(
+            item => item.task
+        );
+
+
+    /*
+    Candidate points
+    */
+
+    const candidates = {
+
+        x: cost,
+
+        y: latency,
+
+        z: carbon,
+
+        mode: "markers",
+
+        type: "scatter3d",
+
+        name: "Candidate Schedules",
+
+        text: names,
+
+        hovertemplate:
+            "<b>%{text}</b>" +
+            "<br>Cost: $%{x}" +
+            "<br>Latency: %{y} min" +
+            "<br>Carbon: %{z} gCO₂" +
+            "<extra></extra>",
+
+        marker: {
+
+            size: 7,
+
+            opacity: 0.8
+
+        }
+
+    };
+
+
+    /*
+    Calculate simple Pareto points.
+    */
+
+    const paretoIndices = [];
+
+
+    for (
+        let i = 0;
+        i < schedule.length;
+        i++
+    ) {
+
+        let dominated = false;
+
+
+        for (
+            let j = 0;
+            j < schedule.length;
+            j++
+        ) {
+
+            if (i === j) {
+
+                continue;
+
+            }
+
+
+            const betterOrEqual =
+
+                schedule[j].cost <=
+                    schedule[i].cost &&
+
+                schedule[j].latency <=
+                    schedule[i].latency &&
+
+                schedule[j].carbon <=
+                    schedule[i].carbon;
+
+
+            const strictlyBetter =
+
+                schedule[j].cost <
+                    schedule[i].cost ||
+
+                schedule[j].latency <
+                    schedule[i].latency ||
+
+                schedule[j].carbon <
+                    schedule[i].carbon;
+
+
+            if (
+                betterOrEqual &&
+                strictlyBetter
+            ) {
+
+                dominated = true;
+
+                break;
+
+            }
+
+        }
+
+
+        if (!dominated) {
+
+            paretoIndices.push(i);
+
+        }
+
+    }
+
+
+    const pareto = {
+
+        x: paretoIndices.map(
+            i => cost[i]
+        ),
+
+        y: paretoIndices.map(
+            i => latency[i]
+        ),
+
+        z: paretoIndices.map(
+            i => carbon[i]
+        ),
+
+        mode: "markers",
+
+        type: "scatter3d",
+
+        name: "Pareto Optimal",
+
+        text: paretoIndices.map(
+            i => names[i]
+        ),
+
+        hovertemplate:
+            "<b>%{text}</b>" +
+            "<br>Cost: $%{x}" +
+            "<br>Latency: %{y} min" +
+            "<br>Carbon: %{z} gCO₂" +
+            "<extra></extra>",
+
+        marker: {
+
+            size: 11,
+
+            symbol: "diamond"
+
+        }
+
+    };
+
+
+    const layout = {
+
+        title:
+            "Cost vs Latency vs Carbon",
+
+        scene: {
+
+            xaxis: {
+                title: "Cost (USD)"
+            },
+
+            yaxis: {
+                title: "Latency (minutes)"
+            },
+
+            zaxis: {
+                title: "Carbon (gCO₂)"
+            }
+
+        },
+
+        margin: {
+
+            l: 0,
+            r: 0,
+            b: 0,
+            t: 50
+
+        }
+
+    };
+
+
+    Plotly.newPlot(
+
+        "paretoChart",
+
+        [
+            candidates,
+            pareto
+        ],
+
+        layout,
+
+        {
+            responsive: true
+        }
+
+    );
+
+}
+
+
+/* =====================================================
+   OFFLINE TASK
+===================================================== */
+
+async function simulateOfflineTask() {
+
+    const task =
+        prompt(
+            "Enter completed task:"
+        );
+
+
+    if (!task) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/offline-event",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            task:
+                                task,
+
+                            status:
+                                "Completed Offline"
+
+                        })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (data.success) {
+
+            document.getElementById(
+                "syncStatus"
+            ).innerText =
+                "Offline event stored";
+
+
+            updatePendingCount(
+                data.pending
+            );
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+
+/* =====================================================
+   LOAD PENDING EVENTS
+===================================================== */
+
+async function loadPendingEvents() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/pending-events"
+            );
+
+
+        const data =
+            await response.json();
+
+
+        updatePendingCount(
+            data.count
+        );
+
+
+        const eventsList =
+            document.getElementById(
+                "eventsList"
+            );
+
+
+        eventsList.innerHTML = "";
+
+
+        if (
+            data.events.length === 0
+        ) {
+
+            eventsList.innerHTML =
+                "<p>No pending events.</p>";
+
+            return;
+
+        }
+
+
+        data.events.forEach(
+            event => {
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                div.className =
+                    "event-item";
+
+
+                div.innerHTML = `
+
+                    <b>
+                        ${event.task}
+                    </b>
+
+                    <br>
+
+                    Status:
+                    ${event.status}
+
+                    <br>
+
+                    Created:
+                    ${event.created_at}
+
+                `;
+
+
+                eventsList.appendChild(
+                    div
+                );
+
+            }
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+
+/* =====================================================
+   SYNCHRONIZE EVENTS
+===================================================== */
+
+async function syncEvents() {
+
+    try {
+
+        document.getElementById(
+            "syncStatus"
+        ).innerText =
+            "Synchronizing...";
+
+
+        const response =
+            await fetch(
+                "/sync",
+                {
+
+                    method: "POST"
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        updatePendingCount(
+            data.remaining
+        );
+
+
+        document.getElementById(
+            "syncStatus"
+        ).innerText =
+            data.synchronized +
+            " event(s) synchronized";
+
+
+        loadPendingEvents();
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+
+        document.getElementById(
+            "syncStatus"
+        ).innerText =
+            "Sync failed";
+
+    }
+
+}
+
+
+/* =====================================================
+   UPDATE PENDING COUNT
+===================================================== */
+
+function updatePendingCount(
+    count
+) {
+
+    document.getElementById(
+        "pendingCount"
+    ).innerText =
+        count;
+
+
+    if (count > 0) {
+
+        document.getElementById(
+            "connectionMode"
+        ).innerText =
+            "Offline Queue";
+
+        document.getElementById(
+            "connectionMode"
+        ).className =
+            "status-value offline";
+
+    }
+
+    else {
+
+        document.getElementById(
+            "connectionMode"
+        ).innerText =
+            "Online";
+
+        document.getElementById(
+            "connectionMode"
+        ).className =
+            "status-value online";
+
+    }
+
+}
+
+
+/* =====================================================
+   CHECK OFFLINE STATUS
+===================================================== */
+
+async function checkOfflineStatus() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/offline-status"
+            );
+
+
+        const data =
+            await response.json();
+
+
+        updatePendingCount(
+            data.pending
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+
+/* =====================================================
+   START
+===================================================== */
+
+setupLogout();
+
+checkOfflineStatus();
+
+</script>
+
+
+</body>
+
+</html>
